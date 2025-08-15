@@ -1,4 +1,4 @@
-from debateai.ui import run_terminal_ui
+from agentic.tui.ui import run_terminal_ui
 
 
 if __name__ == "__main__":
