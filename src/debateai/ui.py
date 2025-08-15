@@ -1,151 +1,36 @@
 import os
 import sys
-from typing import Literal
-from .streaming import run_streaming_debate, run_streaming_discussion, run_streaming_policy_analysis
-from .tool_streaming import run_streaming_debate_with_tools, run_streaming_discussion_with_tools, run_streaming_policy_analysis_with_tools
+from .graph import run_streaming_debate, run_custom_streaming_debate
+from .config import get_available_models_list, validate_model_availability
+from .rich_ui import DebateUI
 
 
-def clear_screen():
-    """Clear the terminal screen"""
-    os.system('cls' if os.name == 'nt' else 'clear')
+# Legacy functions removed - now handled by DebateUI class
 
 
-def print_header():
-    """Print the debate AI header"""
-    print("=" * 70)
-    print("🗳️  POLITICAL DEBATE AI (STREAMING)  🗳️")
-    print("=" * 70)
-    print("Engage in real-time political debates with streaming responses")
-    print("=" * 70)
+# Legacy functions removed - now handled by DebateUI class
 
 
-def print_model_options():
-    """Print available model options"""
-    print("\nAvailable Models:")
-    print("1. OpenAI GPT-4o")
-    print("2. Google Gemini 1.5 Pro")
+# Legacy functions removed - now handled by DebateUI class
 
 
-def get_model_choice(side: str) -> Literal["openai", "gemini"]:
-    """Get model choice for a specific side"""
-    while True:
-        print(f"\nChoose model for {side.upper()} side:")
-        print_model_options()
-        choice = input(f"Enter choice for {side} (1 for OpenAI, 2 for Gemini): ").strip()
-        
-        if choice == "1":
-            return "openai"
-        elif choice == "2":
-            return "gemini"
-        else:
-            print("❌ Invalid choice. Please enter 1 or 2.")
-
-
-def get_debate_topic() -> str:
-    """Get debate topic from user"""
-    while True:
-        topic = input("\n📝 Enter debate topic: ").strip()
-        if topic:
-            return topic
-        print("❌ Please enter a valid topic.")
-
-
-def get_max_turns() -> int:
-    """Get maximum number of turns from user"""
-    while True:
-        try:
-            turns = input("\n🔄 Enter maximum number of turns (default: 8): ").strip()
-            if not turns:
-                return 8
-            turns_int = int(turns)
-            if turns_int > 0:
-                return turns_int
-            else:
-                print("❌ Please enter a positive number.")
-        except ValueError:
-            print("❌ Please enter a valid number.")
-
-
-def get_tools_preference() -> bool:
-    """Get whether user wants to enable tools"""
-    while True:
-        print("\n🛠️ Enable tools (web search) for agents?")
-        print("   Tools allow agents to search for current facts and statistics")
-        choice = input("Enable tools? (y/n): ").strip().lower()
-        if choice in ['y', 'yes']:
-            return True
-        elif choice in ['n', 'no']:
-            return False
-        else:
-            print("❌ Please enter 'y' or 'n'.")
-
-
-def get_debate_type() -> int:
-    """Get type of debate from user"""
-    while True:
-        print("\n🎯 Choose debate type:")
-        print("1. 🗳️  Political Debate (Structured argument format)")
-        print("2. 💬 Political Discussion (General discussion)")
-        print("3. 📋 Policy Analysis (Deep policy analysis)")
-        print("4. 🚪 Exit")
-        
-        try:
-            choice = int(input("Enter your choice (1-4): ").strip())
-            if 1 <= choice <= 4:
-                return choice
-            else:
-                print("❌ Please enter a number between 1-4.")
-        except ValueError:
-            print("❌ Please enter a valid number.")
-
-
-def confirm_setup(topic: str, left_model: str, right_model: str, max_turns: int, debate_type: str, tools_enabled: bool) -> bool:
-    """Confirm debate setup with user"""
-    print("\n" + "=" * 50)
-    print("📋 DEBATE SETUP CONFIRMATION")
-    print("=" * 50)
-    print(f"🎯 Topic: {topic}")
-    print(f"🔴 Left (Progressive): {left_model.upper()}")
-    print(f"🔵 Right (Conservative): {right_model.upper()}")
-    print(f"🔄 Max Turns: {max_turns}")
-    print(f"📝 Type: {debate_type}")
-    print(f"🛠️ Tools: {'Enabled' if tools_enabled else 'Disabled'}")
-    print("=" * 50)
-    
-    while True:
-        confirm = input("Start debate? (y/n): ").strip().lower()
-        if confirm in ['y', 'yes']:
-            return True
-        elif confirm in ['n', 'no']:
-            return False
-        else:
-            print("❌ Please enter 'y' or 'n'.")
-
-
-def show_progress(current_turn: int, max_turns: int):
-    """Show debate progress"""
-    progress = "█" * current_turn + "░" * (max_turns - current_turn)
-    print(f"\n📊 Progress: [{progress}] {current_turn}/{max_turns}")
+# Legacy functions removed - now handled by DebateUI class
 
 
 def run_terminal_ui():
-    """Run the terminal UI for political debates"""
+    """Run the Rich-enhanced terminal UI for political debates"""
+    ui = DebateUI()
+    
     try:
         while True:
-            clear_screen()
-            print_header()
-            
-            # Check for API keys
-            if not os.getenv("OPENAI_API_KEY"):
-                print("⚠️  Warning: OPENAI_API_KEY not found in environment variables")
-            if not os.getenv("GOOGLE_API_KEY"):
-                print("⚠️  Warning: GOOGLE_API_KEY not found in environment variables")
+            ui.clear_screen()
+            ui.show_api_key_warnings()
             
             # Get debate type
-            debate_type_num = get_debate_type()
+            debate_type_num = ui.get_debate_type()
             
             if debate_type_num == 4:  # Exit
-                print("\n👋 Thanks for using Political Debate AI!")
+                ui.console.print("\n[bold green]👋 Thanks for using Political Debate AI![/bold green]")
                 break
             
             debate_types = {
@@ -153,63 +38,59 @@ def run_terminal_ui():
                 2: "Political Discussion", 
                 3: "Policy Analysis"
             }
-            debate_type = debate_types[debate_type_num]
+            debate_type_str = debate_types[debate_type_num]
             
             # Get debate configuration
-            topic = get_debate_topic()
-            left_model = get_model_choice("left")
-            right_model = get_model_choice("right")
-            max_turns = get_max_turns()
-            tools_enabled = get_tools_preference()
+            topic = ui.get_debate_topic()
+            left_model = ui.get_model_choice("left")
+            right_model = ui.get_model_choice("right")
+            max_turns = ui.get_max_turns()
+            tools_enabled = ui.get_tools_preference()
+            left_persona, right_persona = ui.get_custom_personas()
             
             # Confirm setup
-            if not confirm_setup(topic, left_model, right_model, max_turns, debate_type, tools_enabled):
-                input("\nPress Enter to continue...")
+            if not ui.confirm_setup(topic, left_model, right_model, max_turns, debate_type_str, tools_enabled, left_persona, right_persona):
+                ui.console.print("\n[dim]Press Enter to continue...[/dim]")
+                input()
                 continue
             
             # Start debate
-            clear_screen()
-            print("🚀 Starting debate...")
-            print(f"🎯 Topic: {topic}")
-            print(f"🔴 Left: {left_model.upper()} | 🔵 Right: {right_model.upper()}")
-            print("=" * 70)
+            ui.clear_screen()
+            ui.console.print("[bold green]🚀 Starting debate...[/bold green]\n")
             
             try:
-                # Run appropriate debate type with or without tools
-                if tools_enabled:
-                    if debate_type_num == 1:
-                        run_streaming_debate_with_tools(topic, left_model, right_model, max_turns)
-                    elif debate_type_num == 2:
-                        run_streaming_discussion_with_tools(topic, left_model, right_model, max_turns)
-                    elif debate_type_num == 3:
-                        run_streaming_policy_analysis_with_tools(topic, left_model, right_model, max_turns)
-                else:
-                    if debate_type_num == 1:
-                        run_streaming_debate(topic, left_model, right_model, max_turns)
-                    elif debate_type_num == 2:
-                        run_streaming_discussion(topic, left_model, right_model, max_turns)
-                    elif debate_type_num == 3:
-                        run_streaming_policy_analysis(topic, left_model, right_model, max_turns)
+                # Map debate type to internal string
+                debate_type_map = {
+                    1: "debate",
+                    2: "discussion", 
+                    3: "policy"
+                }
+                debate_type = debate_type_map[debate_type_num]
                 
+                # Show debate header
+                ui.show_debate_header(topic, left_model, right_model, tools_enabled, debate_type)
+                
+                # Run appropriate debate type
+                if left_persona and right_persona:
+                    run_custom_streaming_debate(topic, left_model, right_model, left_persona, right_persona, max_turns, tools_enabled, ui)
+                else:
+                    run_streaming_debate(topic, left_model, right_model, max_turns, tools_enabled, debate_type, ui)
+                
+                # Show completion message
+                ui.show_completion_message(debate_type)
                 
             except KeyboardInterrupt:
-                print("\n\n⏹️  Debate interrupted by user.")
+                ui.console.print("\n\n[yellow]⏹️  Debate interrupted by user.[/yellow]")
             except Exception as e:
-                print(f"\n❌ Error during debate: {str(e)}")
+                ui.console.print(f"\n[red]❌ Error during debate: {str(e)}[/red]")
             
             # Ask if user wants another debate
-            while True:
-                another = input("\nStart another debate? (y/n): ").strip().lower()
-                if another in ['y', 'yes']:
-                    break
-                elif another in ['n', 'no']:
-                    print("\n👋 Thanks for using Political Debate AI!")
-                    return
-                else:
-                    print("❌ Please enter 'y' or 'n'.")
+            if not ui.ask_continue():
+                ui.console.print("\n[bold green]👋 Thanks for using Political Debate AI![/bold green]")
+                break
     
     except KeyboardInterrupt:
-        print("\n\n👋 Goodbye!")
+        ui.console.print("\n\n[bold green]👋 Goodbye![/bold green]")
     except Exception as e:
-        print(f"\n❌ Unexpected error: {str(e)}")
+        ui.console.print(f"\n[red]❌ Unexpected error: {str(e)}[/red]")
         sys.exit(1)

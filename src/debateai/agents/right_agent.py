@@ -1,17 +1,14 @@
-from typing import Literal
-from langchain_core.messages import HumanMessage
+from typing import Iterator
 from ..state import ChatState
-from ..models import initialize_models
+from ..tools_registry import get_tool_descriptions
+from .base_agent import BaseStreamingAgent
 
 
-def right_agent_response(state: ChatState, model_choice: Literal["openai", "gemini"] = "gemini") -> ChatState:
-    """Right-aligned agent generates a conservative response"""
-    openai_model, gemini_model = initialize_models()
+class RightAgent(BaseStreamingAgent):
+    """Conservative/right-leaning streaming agent"""
     
-    # Choose specific model based on user preference
-    model = openai_model if model_choice == "openai" else gemini_model
-
-    right_persona = """You are a conservative, right-leaning political commentator and advocate. Your perspective emphasizes:
+    def __init__(self, model_name: str):
+        persona = """You are a conservative, right-leaning political commentator engaged in a political debate. Your perspective emphasizes:
     - Individual liberty, personal responsibility, and limited government
     - Free market capitalism and economic freedom
     - Traditional values, family structures, and cultural continuity
@@ -23,48 +20,57 @@ def right_agent_response(state: ChatState, model_choice: Literal["openai", "gemi
     - Property rights and entrepreneurship
     - Skepticism of rapid social change and government overreach
     
-    Approach topics with emphasis on proven traditions, practical solutions, and individual empowerment. Value stability, order, and incremental change. Be principled but respectful in your arguments."""
-
-    messages = state["messages"].copy()
-    if len(messages) > 1:
-        system_context = HumanMessage(content=right_persona)
-        messages = [system_context] + messages[1:]
-    elif messages and isinstance(messages[0], HumanMessage):
-        messages[0] = HumanMessage(
-            content=right_persona + "\n\n" + messages[0].content
+    IMPORTANT DEBATE INSTRUCTIONS:
+    - Always directly engage with and respond to the specific points made by your opponent
+    - Present concrete counter-arguments to progressive positions
+    - Use specific examples, statistics, and evidence to support your conservative viewpoints
+    - Challenge progressive arguments while maintaining respectful discourse
+    - Build upon previous points in the conversation to create a coherent conservative narrative
+    - Be principled but respectful, and always advance the debate forward with substantive responses"""
+        
+        super().__init__(
+            model_name=model_name,
+            persona=persona,
+            speaker_name="Conservative Perspective",
+            speaker_icon="🔵",
+            next_speaker="left"
         )
+    
+    def get_persona_with_tools(self) -> str:
+        """Get persona text with tool descriptions"""
+        return f"""{self.persona}
+    
+    You have access to the following tools to support your arguments with factual information:
+    {get_tool_descriptions()}
+    
+    Use these tools when you need current information, statistics, or evidence to support your conservative viewpoints. Always cite your sources when using tool results."""
 
-    response = model.invoke(messages)
-    new_messages = state["messages"] + [response]
 
-    return {
-        "messages": new_messages,
-        "current_speaker": "left",
-        "conversation_count": state["conversation_count"] + 1,
-        "max_turns": state["max_turns"],
-    }
-
-
-def right_agent_with_custom_persona(state: ChatState, persona: str, model_choice: Literal["openai", "gemini"] = "gemini") -> ChatState:
-    """Right-aligned agent with custom persona"""
-    openai_model, gemini_model = initialize_models()
-    model = openai_model if model_choice == "openai" else gemini_model
-
-    messages = state["messages"].copy()
-    if len(messages) > 1:
-        system_context = HumanMessage(content=persona)
-        messages = [system_context] + messages[1:]
-    elif messages and isinstance(messages[0], HumanMessage):
-        messages[0] = HumanMessage(
-            content=persona + "\n\n" + messages[0].content
+class CustomRightAgent(BaseStreamingAgent):
+    """Right-leaning streaming agent with custom persona"""
+    
+    def __init__(self, model_name: str, custom_persona: str):
+        super().__init__(
+            model_name=model_name,
+            persona=custom_persona,
+            speaker_name="Conservative Perspective",
+            speaker_icon="🔵",
+            next_speaker="left"
         )
+    
+    def get_persona_with_tools(self) -> str:
+        """Get persona text with tool descriptions"""
+        return f"""{self.persona}
+    
+    You have access to the following tools to support your arguments with factual information:
+    {get_tool_descriptions()}
+    
+    Use these tools when you need current information, statistics, or evidence to support your viewpoints. Always cite your sources when using tool results."""
 
-    response = model.invoke(messages)
-    new_messages = state["messages"] + [response]
 
-    return {
-        "messages": new_messages,
-        "current_speaker": "left",
-        "conversation_count": state["conversation_count"] + 1,
-        "max_turns": state["max_turns"],
-    }
+def create_right_agent(model_name: str, custom_persona: str = None) -> BaseStreamingAgent:
+    """Factory function to create right agent"""
+    if custom_persona:
+        return CustomRightAgent(model_name, custom_persona)
+    else:
+        return RightAgent(model_name)
