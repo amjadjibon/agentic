@@ -15,6 +15,8 @@ from debateai.config import (
     get_available_models_list,
     validate_model_availability
 )
+from debateai.rappers import get_available_rappers
+from debateai.rap_battle_graph import get_rap_battle_topic_suggestions
 
 
 console = Console()
@@ -73,11 +75,47 @@ class DebateUIComponents:
             ("1", "🗳️ Political Debate", "Structured argument format with opposing viewpoints"),
             ("2", "💬 Political Discussion", "General discussion and exchange of ideas"),
             ("3", "📋 Policy Analysis", "Deep analysis of policy implications"),
-            ("4", "🚪 Exit", "Exit the application")
+            ("4", "🎤 Rap Battle", "Epic rap battles between legendary artists"),
+            ("5", "🚪 Exit", "Exit the application")
         ]
         
         for type_id, type_name, description in debate_types:
             table.add_row(type_id, type_name, description)
+        
+        return table
+    
+    @staticmethod
+    def create_rapper_selection_table() -> Table:
+        """Create a table showing available rappers"""
+        rappers = get_available_rappers()
+        
+        table = Table(title="Available Rappers", box=box.ROUNDED)
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Icon", style="white", no_wrap=True)
+        table.add_column("Rapper", style="white")
+        table.add_column("Description", style="dim")
+        
+        for i, (rapper_id, rapper_info) in enumerate(rappers.items(), 1):
+            table.add_row(
+                str(i),
+                rapper_info['icon'],
+                rapper_info['name'],
+                rapper_info['description']
+            )
+        
+        return table
+    
+    @staticmethod
+    def create_battle_topic_suggestions_table() -> Table:
+        """Create a table showing rap battle topic suggestions"""
+        suggestions = get_rap_battle_topic_suggestions()
+        
+        table = Table(title="Battle Topic Suggestions", box=box.ROUNDED)
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Topic", style="white")
+        
+        for i, topic in enumerate(suggestions, 1):
+            table.add_row(str(i), topic)
         
         return table
     
@@ -266,7 +304,7 @@ class DebateUI:
         
         while True:
             try:
-                choice = Prompt.ask("Enter your choice", choices=["1", "2", "3", "4"])
+                choice = Prompt.ask("Enter your choice", choices=["1", "2", "3", "4", "5"])
                 return int(choice)
             except ValueError:
                 self.console.print("[red]❌ Please enter a valid number.[/red]")
@@ -480,3 +518,138 @@ class DebateUI:
             box=box.ROUNDED
         )
         self.console.print(success_panel)
+    
+    # Rap Battle specific UI methods
+    def get_rapper_choice(self, position: str) -> str:
+        """Get rapper choice with Rich interface"""
+        rappers = get_available_rappers()
+        rapper_list = list(rappers.items())
+        
+        while True:
+            self.console.print(f"\n[bold]Choose rapper for {position.upper()} corner:[/bold]")
+            self.console.print(DebateUIComponents.create_rapper_selection_table())
+            
+            try:
+                choice = Prompt.ask(f"Enter choice for {position}", choices=[str(i) for i in range(1, len(rapper_list) + 1)])
+                choice_int = int(choice)
+                selected_rapper_id = rapper_list[choice_int - 1][0]
+                return selected_rapper_id
+            except (ValueError, IndexError):
+                self.console.print("[red]❌ Please enter a valid number.[/red]")
+    
+    def get_battle_topic(self) -> str:
+        """Get rap battle topic with suggestions"""
+        battle_panel = Panel(
+            "[yellow]🎤 Choose a battle topic or create your own!\n\n"
+            "[white]You can select from suggestions below or enter a custom topic[/white]",
+            title="🎤 Battle Topic Selection",
+            style="yellow",
+            box=box.ROUNDED
+        )
+        self.console.print(battle_panel)
+        
+        # Show suggestions
+        self.console.print(DebateUIComponents.create_battle_topic_suggestions_table())
+        
+        choice = Prompt.ask("\n[bold]Enter suggestion number or type custom topic[/bold]")
+        
+        # Check if it's a number (suggestion choice)
+        try:
+            suggestion_num = int(choice)
+            suggestions = get_rap_battle_topic_suggestions()
+            if 1 <= suggestion_num <= len(suggestions):
+                return suggestions[suggestion_num - 1]
+        except ValueError:
+            pass
+        
+        # If not a valid suggestion number, treat as custom topic
+        return choice
+    
+    def get_battle_rounds(self) -> int:
+        """Get number of battle rounds"""
+        while True:
+            try:
+                rounds_str = Prompt.ask("\n[bold]🔄 Enter number of battle rounds[/bold]", default="3")
+                rounds = int(rounds_str)
+                if 1 <= rounds <= 5:
+                    return rounds
+                else:
+                    self.console.print("[red]❌ Please enter between 1-5 rounds.[/red]")
+            except ValueError:
+                self.console.print("[red]❌ Please enter a valid number.[/red]")
+    
+    def confirm_battle_setup(
+        self, 
+        topic: str, 
+        rapper1_id: str, 
+        rapper2_id: str, 
+        model1: str, 
+        model2: str, 
+        rounds: int, 
+        tools_enabled: bool,
+        judge_enabled: bool,
+        judge_model: Optional[str] = None
+    ) -> bool:
+        """Confirm rap battle setup"""
+        rappers = get_available_rappers()
+        models = get_available_models_list()
+        
+        rapper1_info = rappers[rapper1_id]
+        rapper2_info = rappers[rapper2_id]
+        model1_display = next((m['display_name'] for m in models if m['name'] == model1), model1)
+        model2_display = next((m['display_name'] for m in models if m['name'] == model2), model2)
+        
+        setup_text = Text()
+        setup_text.append("🎤 Battle Topic: ", style="bold")
+        setup_text.append(f"{topic}\n", style="white")
+        
+        setup_text.append(f"{rapper1_info['icon']} Rapper 1: ", style="bold red")
+        setup_text.append(f"{rapper1_info['name']} ({model1_display})\n", style="white")
+        
+        setup_text.append(f"{rapper2_info['icon']} Rapper 2: ", style="bold blue")
+        setup_text.append(f"{rapper2_info['name']} ({model2_display})\n", style="white")
+        
+        setup_text.append("🔄 Rounds: ", style="bold")
+        setup_text.append(f"{rounds}\n", style="white")
+        
+        setup_text.append("🛠️ Tools: ", style="bold")
+        setup_text.append(f"{'Enabled' if tools_enabled else 'Disabled'}\n", style="green" if tools_enabled else "red")
+        
+        setup_text.append("🏆 Judge: ", style="bold")
+        setup_text.append(f"{'Enabled' if judge_enabled else 'Disabled'}", style="green" if judge_enabled else "red")
+        if judge_enabled and judge_model:
+            judge_display = next((m['display_name'] for m in get_available_models_list() if m['name'] == judge_model), judge_model)
+            setup_text.append(f" ({judge_display})", style="dim")
+        
+        confirmation_panel = Panel(
+            setup_text,
+            title="🎤 Rap Battle Setup Confirmation",
+            box=box.ROUNDED,
+            style="bright_magenta"
+        )
+        self.console.print(confirmation_panel)
+        
+        return Confirm.ask("\n[bold magenta]🎤 START THE BATTLE?[/bold magenta]", default=True)
+    
+    def show_battle_header(self, topic: str, rapper1_info: dict, rapper2_info: dict, tools_enabled: bool):
+        """Show rap battle header"""
+        header_text = Text()
+        header_text.append("🎤 RAP BATTLE: ", style="bold")
+        header_text.append(topic, style="white")
+        header_text.append("\n\n")
+        header_text.append(f"{rapper1_info['icon']} {rapper1_info['name']}", style="bold red")
+        header_text.append(" VS ", style="bold white")
+        header_text.append(f"{rapper2_info['name']} {rapper2_info['icon']}", style="bold blue")
+        
+        if tools_enabled:
+            header_text.append("\n🛠️ Research Tools: ", style="bold")
+            header_text.append("Enabled", style="green")
+        
+        battle_panel = Panel(
+            header_text,
+            box=box.DOUBLE,
+            style="bright_magenta",
+            padding=(1, 2)
+        )
+        
+        self.console.print(battle_panel)
