@@ -1,10 +1,11 @@
 import sys
 import time
 from typing import Iterator, Optional, TYPE_CHECKING
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 from .state import ChatState
 from .agents.left_agent import create_left_agent
 from .agents.right_agent import create_right_agent
+from .agents.judge_agent import create_judge_agent
 
 if TYPE_CHECKING:
     from .rich_ui import DebateUI
@@ -18,12 +19,13 @@ def should_continue_streaming(state: ChatState) -> str:
         return state["current_speaker"]
 
 
-def run_streaming_debate(topic: str, left_model: str, right_model: str, max_turns: int = 8, with_tools: bool = False, debate_type: str = "debate", ui: Optional['DebateUI'] = None):
+def run_streaming_debate(topic: str, left_model: str, right_model: str, max_turns: int = 8, with_tools: bool = False, debate_type: str = "debate", ui: Optional['DebateUI'] = None, with_judge: bool = False, judge_model: str = "openai-gpt4o"):
     """Run a political debate with real-time streaming responses"""
     
     # Create agents
     left_agent = create_left_agent(left_model)
     right_agent = create_right_agent(right_model)
+    judge_agent = create_judge_agent(judge_model) if with_judge else None
     
     # Set up initial prompt based on debate type
     if debate_type == "debate":
@@ -76,8 +78,13 @@ Let's have a substantive policy discussion.
         print(f"🔴 Progressive ({left_model.upper()}) vs 🔵 Conservative ({right_model.upper()})")
         if with_tools:
             print("🛠️ Tools enabled: Web search available")
+        if with_judge:
+            print(f"⚖️ Judge enabled: {judge_model.upper()}")
         print("=" * 70)
         print(f"📊 Progress: 0/{max_turns} turns")
+    
+    # Track conversation for judge context
+    conversation_context = []
     
     while state["conversation_count"] < max_turns:
         current_turn = state["conversation_count"] + 1
@@ -86,10 +93,37 @@ Let's have a substantive policy discussion.
             # Stream left agent response
             for updated_state in left_agent.stream_response(state, with_tools, ui):
                 state = updated_state
+            current_speaker = "progressive"
         else:
             # Stream right agent response  
             for updated_state in right_agent.stream_response(state, with_tools, ui):
                 state = updated_state
+            current_speaker = "conservative"
+        
+        # Judge evaluation if enabled
+        if judge_agent and state["messages"]:
+            latest_message = state["messages"][-1]
+            if isinstance(latest_message, AIMessage):
+                # Extract tools used if any
+                tools_used = None
+                if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
+                    tools_used = [{
+                        'name': getattr(tc, 'name', 'unknown'),
+                        'args': getattr(tc, 'args', {})
+                    } for tc in latest_message.tool_calls]
+                
+                # Judge evaluates the turn
+                judge_agent.evaluate_turn(
+                    turn_content=latest_message.content,
+                    turn_number=current_turn,
+                    speaker=current_speaker,
+                    conversation_context=conversation_context,
+                    tools_used=tools_used,
+                    ui=ui
+                )
+                
+                # Update conversation context
+                conversation_context.append(f"{current_speaker}: {latest_message.content[:200]}...")
         
         # Update progress
         if ui:
@@ -100,6 +134,12 @@ Let's have a substantive policy discussion.
         
         # Small delay between turns for readability
         time.sleep(0.5)
+    
+    # Final judge evaluation if enabled
+    if judge_agent:
+        final_judgment = judge_agent.finalize_judgment(ui)
+        # Add judge data to state for export
+        state["judge_scores"] = judge_agent.get_scoreboard()
     
     # Completion message handled by UI in main function
     if not ui:
@@ -115,12 +155,13 @@ Let's have a substantive policy discussion.
     return state
 
 
-def run_custom_streaming_debate(topic: str, left_model: str, right_model: str, left_persona: str, right_persona: str, max_turns: int = 8, with_tools: bool = False, ui: Optional['DebateUI'] = None):
+def run_custom_streaming_debate(topic: str, left_model: str, right_model: str, left_persona: str, right_persona: str, max_turns: int = 8, with_tools: bool = False, ui: Optional['DebateUI'] = None, with_judge: bool = False, judge_model: str = "openai-gpt4o"):
     """Run a custom political debate with specific personas"""
     
     # Create custom agents
     left_agent = create_left_agent(left_model, left_persona)
     right_agent = create_right_agent(right_model, right_persona)
+    judge_agent = create_judge_agent(judge_model) if with_judge else None
     
     initial_prompt = f"""
 We're having a political debate on the topic: "{topic}"
@@ -153,8 +194,13 @@ Let's begin the debate!
         print(f"🔴 Left Perspective ({left_model.upper()}) vs 🔵 Right Perspective ({right_model.upper()})")
         if with_tools:
             print("🛠️ Tools enabled: Web search available")
+        if with_judge:
+            print(f"⚖️ Judge enabled: {judge_model.upper()}")
         print("=" * 70)
         print(f"📊 Progress: 0/{max_turns} turns")
+    
+    # Track conversation for judge context
+    conversation_context = []
     
     while state["conversation_count"] < max_turns:
         current_turn = state["conversation_count"] + 1
@@ -163,10 +209,37 @@ Let's begin the debate!
             # Stream left agent response
             for updated_state in left_agent.stream_response(state, with_tools, ui):
                 state = updated_state
+            current_speaker = "progressive"  # Map to judge-expected speaker names
         else:
             # Stream right agent response  
             for updated_state in right_agent.stream_response(state, with_tools, ui):
                 state = updated_state
+            current_speaker = "conservative"  # Map to judge-expected speaker names
+        
+        # Judge evaluation if enabled
+        if judge_agent and state["messages"]:
+            latest_message = state["messages"][-1]
+            if isinstance(latest_message, AIMessage):
+                # Extract tools used if any
+                tools_used = None
+                if hasattr(latest_message, 'tool_calls') and latest_message.tool_calls:
+                    tools_used = [{
+                        'name': getattr(tc, 'name', 'unknown'),
+                        'args': getattr(tc, 'args', {})
+                    } for tc in latest_message.tool_calls]
+                
+                # Judge evaluates the turn
+                judge_agent.evaluate_turn(
+                    turn_content=latest_message.content,
+                    turn_number=current_turn,
+                    speaker=current_speaker,
+                    conversation_context=conversation_context,
+                    tools_used=tools_used,
+                    ui=ui
+                )
+                
+                # Update conversation context
+                conversation_context.append(f"{current_speaker}: {latest_message.content[:200]}...")
         
         # Update progress
         if ui:
@@ -177,6 +250,12 @@ Let's begin the debate!
         
         # Small delay between turns for readability
         time.sleep(0.5)
+    
+    # Final judge evaluation if enabled
+    if judge_agent:
+        final_judgment = judge_agent.finalize_judgment(ui)
+        # Add judge data to state for export
+        state["judge_scores"] = judge_agent.get_scoreboard()
     
     # Completion message handled by UI in main function
     if not ui:

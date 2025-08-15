@@ -9,6 +9,8 @@ from rich.prompt import Prompt, Confirm
 from rich.text import Text
 from rich.align import Align
 from rich import box
+from rich.markdown import Markdown
+from rich.pager import Pager
 
 from .config import get_available_models_list, validate_model_availability
 
@@ -86,7 +88,9 @@ class DebateUIComponents:
         debate_type: str, 
         tools_enabled: bool,
         left_persona: Optional[str] = None,
-        right_persona: Optional[str] = None
+        right_persona: Optional[str] = None,
+        judge_enabled: bool = False,
+        judge_model: Optional[str] = None
     ) -> Panel:
         """Create setup confirmation panel"""
         models = get_available_models_list()
@@ -111,6 +115,13 @@ class DebateUIComponents:
         
         setup_text.append("🛠️ Tools: ", style="bold")
         setup_text.append(f"{'Enabled' if tools_enabled else 'Disabled'}\n", style="green" if tools_enabled else "red")
+        
+        setup_text.append("⚖️ Judge: ", style="bold")
+        setup_text.append(f"{'Enabled' if judge_enabled else 'Disabled'}", style="green" if judge_enabled else "red")
+        if judge_enabled and judge_model:
+            judge_display = next((m['display_name'] for m in get_available_models_list() if m['name'] == judge_model), judge_model)
+            setup_text.append(f" ({judge_display})", style="dim")
+        setup_text.append("\n")
         
         if left_persona and right_persona:
             setup_text.append("🎭 Custom Personas: ", style="bold")
@@ -287,6 +298,44 @@ class DebateUI:
         self.console.print(tools_panel)
         return Confirm.ask("Enable tools?", default=False)
     
+    def get_judge_preference(self) -> bool:
+        """Get judge preference with Rich interface"""
+        judge_panel = Panel(
+            "[yellow]⚖️ Enable AI judge for debate scoring?\n\n"
+            "[white]The judge will evaluate each turn on logic, evidence, structure, and communication.\n"
+            "Provides detailed scoring and declares a winner at the end.[/white]",
+            title="⚖️ Judge Configuration",
+            style="yellow",
+            box=box.ROUNDED
+        )
+        self.console.print(judge_panel)
+        return Confirm.ask("Enable judge?", default=True)
+    
+    def get_judge_model_choice(self) -> str:
+        """Get model choice for judge with Rich interface"""
+        models = get_available_models_list()
+        available_models = [m for m in models if m['available']]
+        
+        if not available_models:
+            self.console.print("[red]❌ No models available for judge. Using default.[/red]")
+            return "openai-gpt4o-mini"
+        
+        self.console.print(f"\n[bold yellow]Choose model for JUDGE:[/bold yellow]")
+        self.console.print(DebateUIComponents.create_model_selection_table())
+        
+        while True:
+            try:
+                choice = Prompt.ask(f"Enter choice for judge", choices=[str(i) for i in range(1, len(models) + 1)], default="1")
+                choice_int = int(choice)
+                selected_model = models[choice_int - 1]
+                
+                if selected_model['available']:
+                    return selected_model['name']
+                else:
+                    self.console.print(f"[red]❌ Model {selected_model['display_name']} is not available. Missing API key.[/red]")
+            except (ValueError, IndexError):
+                self.console.print("[red]❌ Please enter a valid number.[/red]")
+    
     def get_custom_personas(self) -> Tuple[Optional[str], Optional[str]]:
         """Get custom personas with Rich interface"""
         personas_panel = Panel(
@@ -315,12 +364,14 @@ class DebateUI:
         debate_type: str, 
         tools_enabled: bool,
         left_persona: Optional[str] = None,
-        right_persona: Optional[str] = None
+        right_persona: Optional[str] = None,
+        judge_enabled: bool = False,
+        judge_model: Optional[str] = None
     ) -> bool:
         """Confirm setup with Rich interface"""
         confirmation_panel = DebateUIComponents.create_setup_confirmation_panel(
             topic, left_model, right_model, max_turns, debate_type, 
-            tools_enabled, left_persona, right_persona
+            tools_enabled, left_persona, right_persona, judge_enabled, judge_model
         )
         self.console.print(confirmation_panel)
         
@@ -393,3 +444,37 @@ class DebateUI:
     def ask_continue(self) -> bool:
         """Ask if user wants to continue with Rich interface"""
         return Confirm.ask("\n[bold]Start another debate?[/bold]", default=True)
+    
+    def display_markdown_view(self, markdown_content: str):
+        """Display markdown content using Rich's markdown renderer"""
+        self.console.print("\n[bold cyan]📄 Markdown View[/bold cyan]")
+        self.console.print("=" * 50, style="cyan")
+        
+        # Create markdown object
+        md = Markdown(markdown_content)
+        
+        # Display with pager for long content
+        if len(markdown_content) > 2000:  # Use pager for long content
+            with self.console.pager():
+                self.console.print(md)
+        else:
+            self.console.print(md)
+    
+    def ask_markdown_export(self) -> bool:
+        """Ask if user wants to export debate to markdown"""
+        return Confirm.ask("\n[bold cyan]📄 Export debate to markdown file?[/bold cyan]", default=False)
+    
+    def ask_view_markdown(self) -> bool:
+        """Ask if user wants to view markdown in terminal"""
+        return Confirm.ask("\n[bold cyan]📄 View debate in markdown format?[/bold cyan]", default=False)
+    
+    def show_export_success(self, filepath: str):
+        """Show successful export message"""
+        success_panel = Panel(
+            f"[green]✅ Debate exported successfully![/green]\n\n"
+            f"[white]File saved to: [bold]{filepath}[/bold][/white]",
+            title="📄 Export Complete",
+            style="green",
+            box=box.ROUNDED
+        )
+        self.console.print(success_panel)

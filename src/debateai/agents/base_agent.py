@@ -47,28 +47,60 @@ class BaseStreamingAgent(ABC):
         
         try:
             tool = tool_map[tool_name]
-            # Handle different argument formats - some tools expect direct args, others expect dict
+            
+            # Get the tool's expected parameters from its schema
+            expected_params = set()
+            if hasattr(tool, 'args_schema') and tool.args_schema:
+                if hasattr(tool.args_schema, 'model_fields'):
+                    expected_params = set(tool.args_schema.model_fields.keys())
+                elif hasattr(tool.args_schema, '__fields__'):
+                    expected_params = set(tool.args_schema.__fields__.keys())
+            
+            # Handle different argument formats
             if isinstance(tool_args, dict):
-                # Remove any unexpected arguments like 'index' that some models might add
-                # Only keep known tool parameters
-                clean_args = {k: v for k, v in tool_args.items() if k in ['query', 'input', 'text']}
-                
-                if len(clean_args) == 1 and 'query' in clean_args:
-                    # If only query argument, pass it directly for simple tools
-                    result = tool.invoke(clean_args['query'])
-                elif len(clean_args) == 1 and list(clean_args.keys())[0] in ['input', 'text']:
-                    # Handle other single argument tools
-                    result = tool.invoke(list(clean_args.values())[0])
+                # Filter out any unexpected arguments that LLMs might add
+                if expected_params:
+                    clean_args = {k: v for k, v in tool_args.items() if k in expected_params}
                 else:
-                    # Pass full dict for complex tools
-                    result = tool.invoke(clean_args if clean_args else tool_args)
+                    # Fallback: only keep common parameter names if we can't introspect the tool
+                    common_params = {'query', 'input', 'text', 'question', 'search_query'}
+                    clean_args = {k: v for k, v in tool_args.items() if k in common_params}
+                
+                # Special handling for single-parameter tools
+                if len(clean_args) == 1:
+                    param_name = list(clean_args.keys())[0]
+                    param_value = clean_args[param_name]
+                    
+                    # For search_web tool specifically, it expects just the query string
+                    if tool_name == 'search_web' and param_name in {'query', 'search_query'}:
+                        result = tool.invoke(param_value)
+                    else:
+                        # Try to invoke with the parameter value directly
+                        try:
+                            result = tool.invoke(param_value)
+                        except TypeError:
+                            # If direct invocation fails, try with the dict
+                            result = tool.invoke(clean_args)
+                elif len(clean_args) == 0:
+                    # No valid arguments found, try with original args as fallback
+                    if isinstance(tool_args, str):
+                        result = tool.invoke(tool_args)
+                    else:
+                        result = tool.invoke(tool_args)
+                else:
+                    # Multiple parameters - pass as dict
+                    result = tool.invoke(clean_args)
             else:
-                # Direct argument
+                # Direct argument (string, etc.)
                 result = tool.invoke(tool_args)
+            
             return str(result)
         except Exception as e:
-            # Provide more detailed error information
-            return f"Error executing tool '{tool_name}' with args {tool_args}: {str(e)}"
+            # Provide more detailed error information for debugging
+            error_msg = f"Error executing tool '{tool_name}': {str(e)}"
+            if isinstance(tool_args, dict) and 'index' in tool_args:
+                error_msg += f" (Note: Removed unexpected 'index' parameter from tool call)"
+            return error_msg
     
     def stream_response(self, state: ChatState, with_tools: bool = False, ui: Optional['DebateUI'] = None) -> Iterator[ChatState]:
         """Generate streaming response"""
@@ -148,20 +180,34 @@ class BaseStreamingAgent(ABC):
             
             # Execute tools and add results
             for tool_call in tool_calls:
-                # Extract tool call information safely
-                if hasattr(tool_call, 'name'):
-                    tool_name = tool_call.name
-                    tool_args = tool_call.args if hasattr(tool_call, 'args') else {}
-                    tool_id = tool_call.id if hasattr(tool_call, 'id') else f"tool_call_{len(new_messages)}"
-                elif isinstance(tool_call, dict):
-                    tool_name = tool_call.get('name', 'unknown')
-                    tool_args = tool_call.get('args', {})
-                    tool_id = tool_call.get('id', f"tool_call_{len(new_messages)}")
-                else:
-                    if ui:
-                        ui.console.print(f"\n[red]❌ Invalid tool call format: {type(tool_call)}[/red]")
+                # Extract tool call information safely with better error handling
+                try:
+                    if hasattr(tool_call, 'name'):
+                        tool_name = tool_call.name
+                        tool_args = tool_call.args if hasattr(tool_call, 'args') else {}
+                        tool_id = tool_call.id if hasattr(tool_call, 'id') else f"tool_call_{len(new_messages)}"
+                    elif isinstance(tool_call, dict):
+                        tool_name = tool_call.get('name', 'unknown')
+                        tool_args = tool_call.get('args', {})
+                        tool_id = tool_call.get('id', f"tool_call_{len(new_messages)}")
                     else:
-                        print(f"\n❌ Invalid tool call format: {type(tool_call)}")
+                        if ui:
+                            ui.console.print(f"\n[red]❌ Invalid tool call format: {type(tool_call)}[/red]")
+                        else:
+                            print(f"\n❌ Invalid tool call format: {type(tool_call)}")
+                        continue
+                    
+                    # Log tool call details for debugging
+                    if isinstance(tool_args, dict) and any(key not in {'query', 'input', 'text', 'question', 'search_query'} for key in tool_args.keys()):
+                        filtered_args = {k: v for k, v in tool_args.items() if k in {'query', 'input', 'text', 'question', 'search_query'}}
+                        if ui:
+                            ui.console.print(f"[dim]🔧 Filtered tool args: {tool_args} -> {filtered_args}[/dim]")
+                        
+                except Exception as e:
+                    if ui:
+                        ui.console.print(f"\n[red]❌ Error processing tool call: {str(e)}[/red]")
+                    else:
+                        print(f"\n❌ Error processing tool call: {str(e)}")
                     continue
                 
                 if ui:
@@ -172,18 +218,30 @@ class BaseStreamingAgent(ABC):
                     print(f"\n🔍 Using tool: {tool_name}")
                     print(f"📝 Query: {tool_args}")
                 
-                result = self.execute_tool_call(tool_call)
-                tool_message = ToolMessage(content=result, tool_call_id=tool_id)
-                new_messages.append(tool_message)
+                # Execute tool with comprehensive error handling
+                try:
+                    result = self.execute_tool_call(tool_call)
+                    tool_message = ToolMessage(content=result, tool_call_id=tool_id)
+                    new_messages.append(tool_message)
+                except Exception as e:
+                    error_result = f"Error executing tool '{tool_name}': {str(e)}"
+                    if ui:
+                        ui.console.print(f"\n[red]❌ Tool execution failed: {str(e)}[/red]")
+                    else:
+                        print(f"\n❌ Tool execution failed: {str(e)}")
+                    tool_message = ToolMessage(content=error_result, tool_call_id=tool_id)
+                    new_messages.append(tool_message)
                 
                 if ui:
-                    # Update with actual result
-                    result_display = result[:200] + "..." if len(result) > 200 else result
+                    # Update with actual result (use the content from tool_message)
+                    result_content = tool_message.content
+                    result_display = result_content[:200] + "..." if len(result_content) > 200 else result_content
                     from ..rich_ui import DebateUIComponents
                     final_tool_panel = DebateUIComponents.create_tool_usage_panel(tool_name, str(tool_args), result_display)
                     ui.console.print(final_tool_panel)
                 else:
-                    print(f"📊 Result: {result[:200]}{'...' if len(result) > 200 else ''}")
+                    result_content = tool_message.content
+                    print(f"📊 Result: {result_content[:200]}{'...' if len(result_content) > 200 else ''}")
             
             # Get final response incorporating tool results
             if ui:

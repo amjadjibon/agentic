@@ -1,20 +1,7 @@
-import os
 import sys
 from .graph import run_streaming_debate, run_custom_streaming_debate
-from .config import get_available_models_list, validate_model_availability
 from .rich_ui import DebateUI
-
-
-# Legacy functions removed - now handled by DebateUI class
-
-
-# Legacy functions removed - now handled by DebateUI class
-
-
-# Legacy functions removed - now handled by DebateUI class
-
-
-# Legacy functions removed - now handled by DebateUI class
+from .markdown_formatter import MarkdownFormatter
 
 
 def run_terminal_ui():
@@ -46,10 +33,12 @@ def run_terminal_ui():
             right_model = ui.get_model_choice("right")
             max_turns = ui.get_max_turns()
             tools_enabled = ui.get_tools_preference()
+            judge_enabled = ui.get_judge_preference()
+            judge_model = ui.get_judge_model_choice() if judge_enabled else None
             left_persona, right_persona = ui.get_custom_personas()
             
             # Confirm setup
-            if not ui.confirm_setup(topic, left_model, right_model, max_turns, debate_type_str, tools_enabled, left_persona, right_persona):
+            if not ui.confirm_setup(topic, left_model, right_model, max_turns, debate_type_str, tools_enabled, left_persona, right_persona, judge_enabled, judge_model):
                 ui.console.print("\n[dim]Press Enter to continue...[/dim]")
                 input()
                 continue
@@ -72,12 +61,30 @@ def run_terminal_ui():
                 
                 # Run appropriate debate type
                 if left_persona and right_persona:
-                    run_custom_streaming_debate(topic, left_model, right_model, left_persona, right_persona, max_turns, tools_enabled, ui)
+                    final_state = run_custom_streaming_debate(topic, left_model, right_model, left_persona, right_persona, max_turns, tools_enabled, ui, judge_enabled, judge_model or "openai-gpt4o-mini")
                 else:
-                    run_streaming_debate(topic, left_model, right_model, max_turns, tools_enabled, debate_type, ui)
+                    final_state = run_streaming_debate(topic, left_model, right_model, max_turns, tools_enabled, debate_type, ui, judge_enabled, judge_model or "openai-gpt4o-mini")
                 
                 # Show completion message
                 ui.show_completion_message(debate_type)
+                
+                # Offer markdown view and export options
+                if final_state and final_state.get("messages"):
+                    # Ask if user wants to view in markdown format
+                    if ui.ask_view_markdown():
+                        formatter = MarkdownFormatter()
+                        markdown_content = formatter.format_debate(
+                            topic, left_model, right_model, final_state, debate_type, tools_enabled, left_persona, right_persona, judge_enabled
+                        )
+                        ui.display_markdown_view(markdown_content)
+                    
+                    # Ask if user wants to export to file
+                    if ui.ask_markdown_export():
+                        formatter = MarkdownFormatter()
+                        filepath = formatter.save_debate_markdown(
+                            topic, left_model, right_model, final_state, debate_type, tools_enabled, left_persona, right_persona, judge_enabled=judge_enabled
+                        )
+                        ui.show_export_success(filepath)
                 
             except KeyboardInterrupt:
                 ui.console.print("\n\n[yellow]⏹️  Debate interrupted by user.[/yellow]")

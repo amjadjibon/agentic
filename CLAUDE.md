@@ -44,6 +44,7 @@ Set these environment variables for full functionality:
 - `base_agent.py`: `BaseStreamingAgent` abstract class with common streaming functionality
 - `left_agent.py`: `LeftAgent` and `CustomLeftAgent` for progressive perspectives
 - `right_agent.py`: `RightAgent` and `CustomRightAgent` for conservative perspectives
+- `judge_agent.py`: `JudgeAgent` for professional debate evaluation and scoring
 - All agents inherit streaming capabilities with tool integration support
 
 **LLM Integration (`src/debateai/models.py`)**
@@ -58,21 +59,28 @@ Set these environment variables for full functionality:
 - Robust tool call handling with argument filtering for model compatibility
 
 **Rich-Enhanced User Interface**
-- `rich_ui.py`: Rich-based UI components with panels, tables, and progress displays
+- `rich_ui.py`: Rich-based UI components with panels, tables, progress displays, judge scoring, and markdown viewing
 - `ui.py`: Main terminal interface using Rich for beautiful, interactive experience
-- Features: Dynamic model selection tables, styled panels, progress tracking, colored output
+- `markdown_formatter.py`: Professional markdown output formatting with comprehensive judge evaluation
+- `debate_tracker.py`: Session tracking and management for multiple debates
+- Features: Dynamic model selection, judge configuration, styled panels, real-time scoring, markdown export
 - Real-time model availability checking with visual status indicators
 
 ### Data Flow
 
-1. User configures debate through terminal UI (topic, models, tools, max turns, optional custom personas)
+1. User configures debate through terminal UI (topic, models, tools, max turns, judge, optional custom personas)
 2. Model availability is validated based on API keys
 3. Appropriate streaming agents are created with selected models
-4. Initial state is set with debate-type-specific prompts
-5. Agents alternate streaming responses with real-time output
-6. Each agent response updates the state and switches to the next speaker
-7. Progress tracking and tool usage is displayed during streaming
-8. Debate continues until max turns reached or manually stopped
+4. Judge agent is initialized if enabled
+5. Initial state is set with debate-type-specific prompts
+6. Agents alternate streaming responses with real-time output
+7. After each turn, judge evaluates the response using 8 criteria (0-10 scale each)
+8. Judge displays detailed scoring and feedback in real-time
+9. Progress tracking and tool usage is displayed during streaming
+10. Debate continues until max turns reached or manually stopped
+11. Judge provides final judgment with winner declaration and category analysis
+12. Post-debate options: markdown viewing (with scores) and export to file
+13. Session tracking for multiple debates with summary export
 
 ### Testing Structure
 
@@ -86,10 +94,13 @@ Tests are organized in `tests/debateai/` matching the source structure:
 
 - Uses UV for dependency management instead of pip
 - Python 3.13+ required
-- **Rich library integration** for beautiful terminal UI with colors, panels, tables, and progress bars
+- **Rich library integration** for beautiful terminal UI with colors, panels, tables, progress bars, and markdown rendering
+- **Professional Judge System** with 8-criteria scoring rubric and real-time evaluation
+- **Markdown export system** for professional debate documentation with detailed judge scores
 - All agents use streaming-only architecture for real-time experience
 - Configurable model system allows easy addition of new LLM providers
 - Object-oriented agent design with inheritance and factory patterns
 - Comprehensive error handling with API key validation and graceful degradation
 - Modular design supports custom personas and debate types
-- Rich UI components provide professional-looking terminal interface
+- Session tracking and batch export capabilities for debate analysis
+- Judge evaluation includes logic, evidence, sources, structure, rebuttals, clarity, accuracy, and originality
