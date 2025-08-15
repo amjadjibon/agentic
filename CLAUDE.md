@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Python-based political debate AI system that uses streaming agents to create real-time debates between AI with different political personas. The system supports multiple LLM providers with a configurable model selection system and includes optional web search tools. All interactions are streaming-only for better user experience.
+This is a Python-based agentic ai system that uses streaming agents to create real-time debates between AI with different political personas. The system supports multiple LLM providers with a configurable model selection system and includes optional web search tools. All interactions are streaming-only for better user experience.
 
 ## Key Commands
 

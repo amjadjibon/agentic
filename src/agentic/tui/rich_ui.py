@@ -11,7 +11,7 @@ from rich.align import Align
 from rich import box
 from rich.markdown import Markdown
 
-from agentic.config import (
+from agentic.llm.config import (
     get_available_models_list,
     validate_model_availability
 )
@@ -28,8 +28,8 @@ class DebateUIComponents:
     @staticmethod
     def create_header() -> Panel:
         """Create the main header panel"""
-        title_text = Text("🗳️ POLITICAL DEBATE AI 🗳️", style="bold magenta")
-        subtitle_text = Text("Engage in real-time political debates with AI agents", style="dim")
+        title_text = Text("🗳️ AGENTIC AI 🗳️", style="bold magenta")
+        subtitle_text = Text("Engage in real-time interactive conversations with AI agents", style="dim")
         header_content = Align.center(Text.assemble(title_text, "\n", subtitle_text))
         
         return Panel(

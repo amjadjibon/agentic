@@ -5,7 +5,7 @@ from typing import Iterator, Optional, TYPE_CHECKING
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 
 from agentic.state import ChatState
-from agentic.models import create_model_instance
+from agentic.llm import create_model_instance
 from agentic.tools import get_tools_for_agents
 
 if TYPE_CHECKING:

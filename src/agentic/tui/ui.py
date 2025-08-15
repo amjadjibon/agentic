@@ -4,7 +4,7 @@ from datetime import datetime
 from agentic.graph.graph import run_streaming_debate, run_custom_streaming_debate
 from agentic.graph.rap_battle_graph import run_rap_battle
 from agentic.tui.rich_ui import DebateUI
-from agentic.tui.markdown_formatter import MarkdownFormatter
+from agentic.tui.markdown import MarkdownFormatter
 from agentic.agents.rappers import get_available_rappers
 
 
@@ -21,13 +21,13 @@ def run_terminal_ui():
             debate_type_num = ui.get_debate_type()
             
             if debate_type_num == 5:  # Exit
-                ui.console.print("\n[bold green]👋 Thanks for using Political Debate AI![/bold green]")
+                ui.console.print("\n[bold green]👋 Thanks for using Agentic AI![/bold green]")
                 break
             
-            debate_types = {
-                1: "Political Debate",
-                2: "Political Discussion", 
-                3: "Policy Analysis",
+            debate_types = {    
+                1: "Debate",
+                2: "Discussion", 
+                3: "Analysis",
                 4: "Rap Battle"
             }
             debate_type_str = debate_types[debate_type_num]
@@ -155,7 +155,7 @@ def run_terminal_ui():
             
             # Ask if user wants another debate
             if not ui.ask_continue():
-                ui.console.print("\n[bold green]👋 Thanks for using Political Debate AI![/bold green]")
+                ui.console.print("\n[bold green]👋 Thanks for using Agentic AI![/bold green]")
                 break
     
     except KeyboardInterrupt:

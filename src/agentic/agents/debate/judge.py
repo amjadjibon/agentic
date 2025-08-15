@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from langchain_core.messages import HumanMessage
 
-from agentic.models import create_model_instance
+from agentic.llm import create_model_instance
 
 if TYPE_CHECKING:
     from agentic.tui.rich_ui import DebateUI
