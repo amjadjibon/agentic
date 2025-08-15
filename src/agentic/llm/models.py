@@ -379,7 +379,7 @@ def get_model(model_name: str, model_provider: ModelProvider, api_keys: dict = N
         if not api_key:
             print(f"API Key Error: Please make sure GOOGLE_API_KEY is set in your .env file or provided via API keys.")
             raise ValueError("Google API key not found.  Please make sure GOOGLE_API_KEY is set in your .env file or provided via API keys.")
-        return ChatGoogleGenerativeAI(model=model_name, api_key=api_key, streaming=True)
+        return ChatGoogleGenerativeAI(model=model_name, api_key=api_key)
     elif model_provider == ModelProvider.OLLAMA:
         # For Ollama, we use a base URL instead of an API key
         # Check if OLLAMA_HOST is set (for Docker on macOS)
@@ -414,14 +414,14 @@ def get_model(model_name: str, model_provider: ModelProvider, api_keys: dict = N
         )
     elif model_provider == ModelProvider.GIGACHAT:
         if os.getenv("GIGACHAT_USER") or os.getenv("GIGACHAT_PASSWORD"):
-            return GigaChat(model=model_name, streaming=True)
+            return GigaChat(model=model_name)
         else: 
             api_key = (api_keys or {}).get("GIGACHAT_API_KEY") or os.getenv("GIGACHAT_API_KEY") or os.getenv("GIGACHAT_CREDENTIALS")
             if not api_key:
                 print("API Key Error: Please make sure api_keys is set in your .env file or provided via API keys.")
                 raise ValueError("GigaChat API key not found. Please make sure GIGACHAT_API_KEY is set in your .env file or provided via API keys.")
 
-            return GigaChat(credentials=api_key, model=model_name, streaming=True)
+            return GigaChat(credentials=api_key, model=model_name)
 
 
 # Convenience functions for easy usage
