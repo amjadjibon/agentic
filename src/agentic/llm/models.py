@@ -100,7 +100,7 @@ AVAILABLE_MODELS_DATA = [
         "provider": "openai"
     },
     {
-        "display_name": "o4 Mini",
+        "display_name": "GPT-4o Mini",
         "model_name": "gpt-4o-mini",
         "provider": "openai"
     },
