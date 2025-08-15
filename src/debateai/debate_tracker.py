@@ -1,9 +1,8 @@
-"""Debate tracking and session management"""
-
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from .state import ChatState
+
+from debateai.state import ChatState
 
 
 @dataclass

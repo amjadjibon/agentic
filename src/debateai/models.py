@@ -1,8 +1,10 @@
 import os
+
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI
-from .tools_registry import get_tools_for_agents
-from .config import get_model_config
+
+from debateai.tools import get_tools_for_agents
+from debateai.config import get_model_config
 
 
 def create_model_instance(model_name: str, with_tools: bool = False):

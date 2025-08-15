@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
+
 from typing import Iterator, Optional, TYPE_CHECKING
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-from ..state import ChatState
-from ..models import create_model_instance
-from ..tools_registry import get_tools_for_agents
+
+from debateai.state import ChatState
+from debateai.models import create_model_instance
+from debateai.tools import get_tools_for_agents
 
 if TYPE_CHECKING:
-    from ..rich_ui import DebateUI
+    from debateai.rich_ui import DebateUI
 
 
 class BaseStreamingAgent(ABC):

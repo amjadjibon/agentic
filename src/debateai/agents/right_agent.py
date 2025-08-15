@@ -1,7 +1,5 @@
-from typing import Iterator
-from ..state import ChatState
-from ..tools_registry import get_tool_descriptions
-from .base_agent import BaseStreamingAgent
+from debateai.tools import get_tool_descriptions
+from debateai.agents.base_agent import BaseStreamingAgent
 
 
 class RightAgent(BaseStreamingAgent):

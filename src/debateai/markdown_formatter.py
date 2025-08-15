@@ -1,11 +1,11 @@
-"""Markdown formatter for debate output"""
-
 import os
 from datetime import datetime
+
 from typing import List, Optional, Dict, Any
 from langchain_core.messages import BaseMessage, HumanMessage, AIMessage, ToolMessage
-from .state import ChatState
-from .config import get_model_config
+
+from debateai.state import ChatState
+from debateai.config import get_model_config
 
 
 class MarkdownFormatter:

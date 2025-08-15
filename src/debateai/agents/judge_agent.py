@@ -1,14 +1,13 @@
-"""Judge agent for evaluating political debates"""
-
 import json
-from typing import Iterator, Dict, List, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING
 from dataclasses import dataclass
-from langchain_core.messages import HumanMessage, AIMessage
-from ..state import ChatState
-from ..models import create_model_instance
+
+from langchain_core.messages import HumanMessage
+
+from debateai.models import create_model_instance
 
 if TYPE_CHECKING:
-    from ..rich_ui import DebateUI
+    from debateai.rich_ui import DebateUI
 
 
 @dataclass

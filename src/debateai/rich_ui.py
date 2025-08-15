@@ -10,11 +10,13 @@ from rich.text import Text
 from rich.align import Align
 from rich import box
 from rich.markdown import Markdown
-from rich.pager import Pager
 
-from .config import get_available_models_list, validate_model_availability
+from debateai.config import (
+    get_available_models_list,
+    validate_model_availability
+)
 
-# Initialize Rich console
+
 console = Console()
 
 

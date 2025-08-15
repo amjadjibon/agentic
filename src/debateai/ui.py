@@ -1,7 +1,8 @@
 import sys
-from .graph import run_streaming_debate, run_custom_streaming_debate
-from .rich_ui import DebateUI
-from .markdown_formatter import MarkdownFormatter
+
+from debateai.graph import run_streaming_debate, run_custom_streaming_debate
+from debateai.rich_ui import DebateUI
+from debateai.markdown_formatter import MarkdownFormatter
 
 
 def run_terminal_ui():

@@ -1,11 +1,12 @@
-import sys
 import time
-from typing import Iterator, Optional, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
+
 from langchain_core.messages import HumanMessage, AIMessage
-from .state import ChatState
-from .agents.left_agent import create_left_agent
-from .agents.right_agent import create_right_agent
-from .agents.judge_agent import create_judge_agent
+
+from debateai.state import ChatState
+from debateai.agents.left_agent import create_left_agent
+from debateai.agents.right_agent import create_right_agent
+from debateai.agents.judge_agent import create_judge_agent
 
 if TYPE_CHECKING:
     from .rich_ui import DebateUI
