@@ -2,6 +2,7 @@ import os
 import sys
 from typing import Literal
 from .streaming import run_streaming_debate, run_streaming_discussion, run_streaming_policy_analysis
+from .tool_streaming import run_streaming_debate_with_tools, run_streaming_discussion_with_tools, run_streaming_policy_analysis_with_tools
 
 
 def clear_screen():
@@ -65,6 +66,20 @@ def get_max_turns() -> int:
             print("❌ Please enter a valid number.")
 
 
+def get_tools_preference() -> bool:
+    """Get whether user wants to enable tools"""
+    while True:
+        print("\n🛠️ Enable tools (web search) for agents?")
+        print("   Tools allow agents to search for current facts and statistics")
+        choice = input("Enable tools? (y/n): ").strip().lower()
+        if choice in ['y', 'yes']:
+            return True
+        elif choice in ['n', 'no']:
+            return False
+        else:
+            print("❌ Please enter 'y' or 'n'.")
+
+
 def get_debate_type() -> int:
     """Get type of debate from user"""
     while True:
@@ -84,7 +99,7 @@ def get_debate_type() -> int:
             print("❌ Please enter a valid number.")
 
 
-def confirm_setup(topic: str, left_model: str, right_model: str, max_turns: int, debate_type: str) -> bool:
+def confirm_setup(topic: str, left_model: str, right_model: str, max_turns: int, debate_type: str, tools_enabled: bool) -> bool:
     """Confirm debate setup with user"""
     print("\n" + "=" * 50)
     print("📋 DEBATE SETUP CONFIRMATION")
@@ -94,6 +109,7 @@ def confirm_setup(topic: str, left_model: str, right_model: str, max_turns: int,
     print(f"🔵 Right (Conservative): {right_model.upper()}")
     print(f"🔄 Max Turns: {max_turns}")
     print(f"📝 Type: {debate_type}")
+    print(f"🛠️ Tools: {'Enabled' if tools_enabled else 'Disabled'}")
     print("=" * 50)
     
     while True:
@@ -144,9 +160,10 @@ def run_terminal_ui():
             left_model = get_model_choice("left")
             right_model = get_model_choice("right")
             max_turns = get_max_turns()
+            tools_enabled = get_tools_preference()
             
             # Confirm setup
-            if not confirm_setup(topic, left_model, right_model, max_turns, debate_type):
+            if not confirm_setup(topic, left_model, right_model, max_turns, debate_type, tools_enabled):
                 input("\nPress Enter to continue...")
                 continue
             
@@ -158,13 +175,21 @@ def run_terminal_ui():
             print("=" * 70)
             
             try:
-                # Run appropriate debate type with streaming
-                if debate_type_num == 1:
-                    run_streaming_debate(topic, left_model, right_model, max_turns)
-                elif debate_type_num == 2:
-                    run_streaming_discussion(topic, left_model, right_model, max_turns)
-                elif debate_type_num == 3:
-                    run_streaming_policy_analysis(topic, left_model, right_model, max_turns)
+                # Run appropriate debate type with or without tools
+                if tools_enabled:
+                    if debate_type_num == 1:
+                        run_streaming_debate_with_tools(topic, left_model, right_model, max_turns)
+                    elif debate_type_num == 2:
+                        run_streaming_discussion_with_tools(topic, left_model, right_model, max_turns)
+                    elif debate_type_num == 3:
+                        run_streaming_policy_analysis_with_tools(topic, left_model, right_model, max_turns)
+                else:
+                    if debate_type_num == 1:
+                        run_streaming_debate(topic, left_model, right_model, max_turns)
+                    elif debate_type_num == 2:
+                        run_streaming_discussion(topic, left_model, right_model, max_turns)
+                    elif debate_type_num == 3:
+                        run_streaming_policy_analysis(topic, left_model, right_model, max_turns)
                 
                 
             except KeyboardInterrupt:
