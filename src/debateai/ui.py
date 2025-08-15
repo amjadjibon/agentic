@@ -1,7 +1,7 @@
 import os
 import sys
 from typing import Literal
-from .conversations import run_political_debate_with_models, run_political_discussion_with_models, run_policy_analysis_with_models
+from .streaming import run_streaming_debate, run_streaming_discussion, run_streaming_policy_analysis
 
 
 def clear_screen():
@@ -12,9 +12,9 @@ def clear_screen():
 def print_header():
     """Print the debate AI header"""
     print("=" * 70)
-    print("🗳️  POLITICAL DEBATE AI  🗳️")
+    print("🗳️  POLITICAL DEBATE AI (STREAMING)  🗳️")
     print("=" * 70)
-    print("Engage in structured political debates between progressive and conservative perspectives")
+    print("Engage in real-time political debates with streaming responses")
     print("=" * 70)
 
 
@@ -158,17 +158,14 @@ def run_terminal_ui():
             print("=" * 70)
             
             try:
-                # Run appropriate debate type
+                # Run appropriate debate type with streaming
                 if debate_type_num == 1:
-                    run_political_debate_with_models(topic, left_model, right_model, max_turns)
+                    run_streaming_debate(topic, left_model, right_model, max_turns)
                 elif debate_type_num == 2:
-                    run_political_discussion_with_models(topic, left_model, right_model, max_turns)
+                    run_streaming_discussion(topic, left_model, right_model, max_turns)
                 elif debate_type_num == 3:
-                    run_policy_analysis_with_models(topic, left_model, right_model, max_turns)
+                    run_streaming_policy_analysis(topic, left_model, right_model, max_turns)
                 
-                print("\n" + "=" * 70)
-                print("🏁 Debate completed!")
-                print("=" * 70)
                 
             except KeyboardInterrupt:
                 print("\n\n⏹️  Debate interrupted by user.")
