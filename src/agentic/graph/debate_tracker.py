@@ -121,7 +121,7 @@ class DebateTracker:
     
     def export_session_summary(self, output_file: str = "debate_session_summary.md") -> str:
         """Export session summary as markdown"""
-        from ..tui.markdown import create_debate_summary_markdown
+        from ..tui.markdown_formatter import create_debate_summary_markdown
         
         debates_data = []
         for session in self.sessions:

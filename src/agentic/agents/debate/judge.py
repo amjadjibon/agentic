@@ -467,7 +467,7 @@ Focus on objective criteria. Be fair but maintain high standards.
     
     def _display_turn_score(self, score: DebateScore, ui: 'DebateUI'):
         """Display turn score using Rich UI"""
-        from ..tui.rich_ui import DebateUIComponents
+        from ...tui.rich_ui import DebateUIComponents
         
         # Create score panel
         score_text = f"""
@@ -496,7 +496,7 @@ Focus on objective criteria. Be fair but maintain high standards.
     
     def _display_final_judgment(self, ui: 'DebateUI'):
         """Display final judgment using Rich UI"""
-        from ..tui.rich_ui import DebateUIComponents
+        from ...tui.rich_ui import DebateUIComponents
         
         judgment = self.final_judgment
         

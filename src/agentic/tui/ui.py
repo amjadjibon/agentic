@@ -4,7 +4,7 @@ from datetime import datetime
 from agentic.graph.graph import run_streaming_debate, run_custom_streaming_debate
 from agentic.graph.rap_battle_graph import run_rap_battle
 from agentic.tui.rich_ui import DebateUI
-from agentic.tui.markdown import MarkdownFormatter
+from agentic.tui.markdown_formatter import MarkdownFormatter
 from agentic.agents.rappers import get_available_rappers
 
 

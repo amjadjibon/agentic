@@ -142,7 +142,7 @@ class BaseStreamingAgent(ABC):
         
         # Display speaker header
         if ui:
-            from ..tui.rich_ui import DebateUIComponents
+            from ...tui.rich_ui import DebateUIComponents
             # We'll stream directly and create panel later
             ui.console.print(f"\n{self.speaker_icon} [bold]{self.speaker_name}:[/bold]")
         else:
@@ -213,7 +213,7 @@ class BaseStreamingAgent(ABC):
                     continue
                 
                 if ui:
-                    from ..tui.rich_ui import DebateUIComponents
+                    from ...tui.rich_ui import DebateUIComponents
                     tool_panel = DebateUIComponents.create_tool_usage_panel(tool_name, str(tool_args), "Processing...")
                     ui.console.print(tool_panel)
                 else:
@@ -238,7 +238,7 @@ class BaseStreamingAgent(ABC):
                     # Update with actual result (use the content from tool_message)
                     result_content = tool_message.content
                     result_display = result_content[:200] + "..." if len(result_content) > 200 else result_content
-                    from ..tui.rich_ui import DebateUIComponents
+                    from ...tui.rich_ui import DebateUIComponents
                     final_tool_panel = DebateUIComponents.create_tool_usage_panel(tool_name, str(tool_args), result_display)
                     ui.console.print(final_tool_panel)
                 else:
