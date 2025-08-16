@@ -2,6 +2,7 @@ from typing import List, Dict
 from langchain_core.tools import BaseTool
 
 from agentic.tools.search import search_web
+from agentic.tools.wikipedia import search_wikipedia
 
 
 class ToolsRegistry:
@@ -14,7 +15,8 @@ class ToolsRegistry:
     def _register_default_tools(self):
         """Register default tools"""
         self.register_tool("search_web", search_web)
-    
+        self.register_tool("search_wikipedia", search_wikipedia)
+
     def register_tool(self, name: str, tool: BaseTool):
         """Register a tool with the registry"""
         self._tools[name] = tool
