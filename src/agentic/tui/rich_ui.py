@@ -76,7 +76,8 @@ class DebateUIComponents:
             ("2", "💬 Political Discussion", "General discussion and exchange of ideas"),
             ("3", "📋 Policy Analysis", "Deep analysis of policy implications"),
             ("4", "🎤 Rap Battle", "Epic rap battles between legendary artists"),
-            ("5", "🚪 Exit", "Exit the application")
+            ("5", "🎬 YouTube Automation", "AI-powered content creation and strategy"),
+            ("6", "🚪 Exit", "Exit the application")
         ]
         
         for type_id, type_name, description in debate_types:
@@ -304,7 +305,7 @@ class DebateUI:
         
         while True:
             try:
-                choice = Prompt.ask("Enter your choice", choices=["1", "2", "3", "4", "5"])
+                choice = Prompt.ask("Enter your choice", choices=["1", "2", "3", "4", "5", "6"])
                 return int(choice)
             except ValueError:
                 self.console.print("[red]❌ Please enter a valid number.[/red]")
