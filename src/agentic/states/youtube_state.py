@@ -10,6 +10,7 @@ class YouTubeAutomationState(TypedDict):
     niche: str
     target_audience: str
     content_goals: List[str]
+    competitor_urls: Optional[List[str]]
     
     # Workflow state
     messages: List[BaseMessage]

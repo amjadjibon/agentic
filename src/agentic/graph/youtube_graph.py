@@ -6,7 +6,8 @@ from ..agents.youtube import (
     ContentResearcherAgent,
     ScriptWriterAgent, 
     ThumbnailCreatorAgent,
-    AnalyticsProcessorAgent
+    AnalyticsProcessorAgent,
+    CompetitorAnalystAgent
 )
 from ..states.youtube_state import YouTubeAutomationState
 
@@ -19,6 +20,8 @@ def run_youtube_automation(
     niche: str,
     target_audience: str,
     content_goals: list,
+    competitor_urls: list,
+    selected_agents: Dict[str, bool],
     models: Dict[str, str],
     tools_enabled: bool = True,
     max_steps: int = 8,
@@ -32,19 +35,25 @@ def run_youtube_automation(
         niche: Content niche/topic area
         target_audience: Target audience description
         content_goals: List of content goals (e.g., "increase subscribers", "viral content")
+        selected_agents: Dictionary indicating which agents to use
         models: Dictionary mapping agent names to model names
         tools_enabled: Whether to enable web search tools
         max_steps: Maximum number of workflow steps
         ui: Optional UI for rich display
     """
     
-    # Initialize agents
-    agents = {
-        "researcher": ContentResearcherAgent(models.get("researcher", "gpt-4o")),
-        "writer": ScriptWriterAgent(models.get("writer", "gpt-4o")), 
-        "designer": ThumbnailCreatorAgent(models.get("designer", "gpt-4o")),
-        "analyst": AnalyticsProcessorAgent(models.get("analyst", "gpt-4o"))
-    }
+    # Initialize only selected agents
+    agents = {}
+    if selected_agents.get("competitor_analyst", False):
+        agents["competitor_analyst"] = CompetitorAnalystAgent(models.get("competitor_analyst", "gpt-4o"))
+    if selected_agents.get("researcher", False):
+        agents["researcher"] = ContentResearcherAgent(models.get("researcher", "gpt-4o"))
+    if selected_agents.get("writer", False):
+        agents["writer"] = ScriptWriterAgent(models.get("writer", "gpt-4o"))
+    if selected_agents.get("designer", False):
+        agents["designer"] = ThumbnailCreatorAgent(models.get("designer", "gpt-4o"))
+    if selected_agents.get("analyst", False):
+        agents["analyst"] = AnalyticsProcessorAgent(models.get("analyst", "gpt-4o"))
     
     # Initialize state
     initial_state: YouTubeAutomationState = {
@@ -52,6 +61,7 @@ def run_youtube_automation(
         "niche": niche,
         "target_audience": target_audience,
         "content_goals": content_goals,
+        "competitor_urls": competitor_urls,
         "messages": [],
         "current_agent": "researcher",
         "step_count": 0,
@@ -92,16 +102,41 @@ def run_youtube_automation(
     
     current_state = initial_state.copy()
     
-    # Workflow steps
-    workflow_steps = [
-        ("researcher", _research_phase),
-        ("analyst", _analysis_phase),
-        ("writer", _content_creation_phase),
-        ("designer", _thumbnail_phase),
-        ("researcher", _optimization_phase),
-        ("analyst", _calendar_phase),
-        ("researcher", _final_recommendations_phase)
-    ]
+    # Build dynamic workflow based on selected agents
+    workflow_steps = []
+    
+    # Phase 1: Competitor analysis (if selected)
+    if "competitor_analyst" in agents:
+        workflow_steps.append(("competitor_analyst", _competitor_analysis_phase))
+    
+    # Phase 2: Content research (if selected)  
+    if "researcher" in agents:
+        workflow_steps.append(("researcher", _research_phase))
+    
+    # Phase 3: Market analysis (if analyst available)
+    if "analyst" in agents:
+        workflow_steps.append(("analyst", _analysis_phase))
+    
+    # Phase 4: Content creation (if writer available)
+    if "writer" in agents:
+        workflow_steps.append(("writer", _content_creation_phase))
+    
+    # Phase 5: Thumbnail design (if designer available)
+    if "designer" in agents:
+        workflow_steps.append(("designer", _thumbnail_phase))
+    
+    # Phase 6: Optimization (if researcher available)
+    if "researcher" in agents:
+        workflow_steps.append(("researcher", _optimization_phase))
+    
+    # Phase 7: Calendar planning (if analyst available)
+    if "analyst" in agents:
+        workflow_steps.append(("analyst", _calendar_phase))
+    
+    # Phase 8: Final recommendations (use any available agent)
+    if agents:
+        final_agent = list(agents.keys())[0]  # Use first available agent
+        workflow_steps.append((final_agent, _final_recommendations_phase))
     
     try:
         for step_idx, (agent_name, phase_func) in enumerate(workflow_steps):
@@ -145,6 +180,94 @@ def run_youtube_automation(
         print(f"🎨 Thumbnails: {len(current_state.get('thumbnail_concepts', []))}")
     
     yield current_state
+
+
+def _competitor_analysis_phase(state: YouTubeAutomationState, agent, tools_enabled: bool, ui) -> Dict[str, Any]:
+    """Phase 0: Comprehensive competitor analysis"""
+    
+    # Check if competitor URLs were provided in the configuration
+    provided_competitors = []
+    if hasattr(state, 'competitor_urls') and state.get('competitor_urls'):
+        provided_competitors = state['competitor_urls']
+    
+    if provided_competitors:
+        competitor_prompt = f"""
+        Conduct comprehensive competitor analysis for the {state['niche']} YouTube niche using the provided competitor channels.
+
+        **Your Mission:**
+        1. **Analyze Provided Competitors**: Use competitor analytics tools to analyze the specific channels provided by the user
+        2. **Extract Performance Data**: Get detailed metrics for subscriber counts, views, engagement rates
+        3. **Content Strategy Analysis**: Identify successful content formats, topics, and posting patterns
+        4. **Competitive Intelligence**: Extract optimization tactics and growth strategies
+        5. **Generate Strategic Insights**: Provide actionable recommendations for competitive advantage
+
+        **Target Analysis:**
+        - **Your Channel**: {state['channel_url']}
+        - **Niche**: {state['niche']}  
+        - **Audience**: {state['target_audience']}
+        - **Goals**: {', '.join(state['content_goals'])}
+
+        **Provided Competitor Channels to Analyze:**
+        {chr(10).join([f"- {url}" for url in provided_competitors])}
+
+        **Analysis Process:**
+        1. Use the competitor_analytics tool with these specific URLs: {provided_competitors}
+        2. Analyze each channel's performance metrics, content themes, and success patterns
+        3. Compare their strategies against your channel's goals and niche
+        4. Identify content gaps and positioning opportunities
+        5. Extract actionable insights for competitive advantage
+
+        **Required Deliverables:**
+        - Performance benchmarking for each provided competitor
+        - Content strategy analysis and successful formats identification
+        - SEO and optimization insights from competitors
+        - Content gap opportunities and differentiation strategies
+        - Specific tactical recommendations for outperforming competitors
+
+        **IMPORTANT**: Use the competitor_analytics tool with the provided URLs to get detailed analysis data.
+        """
+    else:
+        competitor_prompt = f"""
+        Conduct comprehensive competitor analysis for the {state['niche']} YouTube niche.
+
+        **Your Mission:**
+        1. **Discover Competitors**: Use search tools to find 3-5 top YouTube channels in the {state['niche']} space
+        2. **Analyze Performance**: Use competitor analytics tools to extract detailed performance data
+        3. **Extract Intelligence**: Identify successful content strategies, posting patterns, and optimization tactics
+        4. **Find Opportunities**: Discover content gaps and underserved market segments
+        5. **Generate Insights**: Provide actionable competitive intelligence for strategic advantage
+
+        **Target Analysis:**
+        - **Channel**: {state['channel_url']}
+        - **Niche**: {state['niche']}  
+        - **Audience**: {state['target_audience']}
+        - **Goals**: {', '.join(state['content_goals'])}
+
+        **Research Process:**
+        1. Search for top YouTube channels in {state['niche']} using terms like "{state['niche']} YouTube channel", "best {state['niche']} creators", etc.
+        2. Collect 3-5 competitor channel URLs from search results
+        3. Use competitor analytics tools to analyze each channel's performance metrics
+        4. Compare and contrast their strategies, content themes, and success factors
+        5. Identify opportunities for differentiation and competitive advantage
+
+        **Deliver:**
+        - Competitor performance benchmarks (subscribers, views, engagement)
+        - Successful content formats and topics analysis
+        - Optimal posting strategies and timing insights  
+        - Content gap opportunities
+        - Strategic recommendations for competitive positioning
+
+        Focus on actionable intelligence that directly informs content strategy and competitive positioning.
+        """
+    
+    messages = [HumanMessage(content=competitor_prompt)]
+    
+    return {
+        "messages": messages,
+        "current_speaker": "competitor_analyst", 
+        "conversation_count": 0,
+        "max_turns": 1
+    }
 
 
 def _research_phase(state: YouTubeAutomationState, agent, tools_enabled: bool, ui) -> Dict[str, Any]:

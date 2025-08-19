@@ -94,36 +94,84 @@ Let's get started by configuring your automation workflow!
         # Get tools preference
         tools_enabled = Confirm.ask("🛠️  Enable web search tools for real-time research?", default=True)
         
+        # Get competitor URLs (optional)
+        competitor_urls = []
+        if Confirm.ask("🎯 Do you want to provide specific competitor YouTube channel URLs for analysis?", default=False):
+            self.console.print("\n[bold yellow]Enter competitor YouTube channel URLs (press Enter with empty input to finish):[/bold yellow]")
+            
+            while len(competitor_urls) < 5:  # Limit to 5 competitors
+                url = Prompt.ask(f"Competitor {len(competitor_urls) + 1} URL (or press Enter to finish)", default="")
+                if not url.strip():
+                    break
+                if 'youtube.com' in url.lower():
+                    competitor_urls.append(url.strip())
+                    self.console.print(f"[green]✅ Added: {url.strip()}[/green]")
+                else:
+                    self.console.print("[red]⚠️  Please enter a valid YouTube channel URL[/red]")
+            
+            if competitor_urls:
+                self.console.print(f"\n[green]✅ Added {len(competitor_urls)} competitor(s) for analysis[/green]")
+        
         return {
             "channel_url": channel_url,
             "niche": niche,
             "target_audience": target_audience,
             "content_goals": selected_goals,
-            "tools_enabled": tools_enabled
+            "tools_enabled": tools_enabled,
+            "competitor_urls": competitor_urls
         }
     
-    def select_models(self) -> Dict[str, str]:
-        """Let user select models for each agent"""
-        self.console.print("\n[bold blue]🤖 AI Model Selection[/bold blue]\n")
+    def select_agents_and_models(self) -> Tuple[Dict[str, bool], Dict[str, str]]:
+        """Let user select which agents to use and their models"""
+        self.console.print("\n[bold blue]🤖 Agent & Model Selection[/bold blue]\n")
         
         available_models = get_available_models()
         if not available_models:
             self.console.print("[red]❌ No AI models available. Please configure API keys.[/red]")
-            return {}
+            return {}, {}
         
         model_choices = [(f"{model.display_name} ({model.provider.value})", model.model_name) 
                         for model in available_models]
         
         agents = {
+            "competitor_analyst": "🎯 Competitor Analyst (analyzes competitor strategies) [NEW]",
             "researcher": "🔍 Content Researcher (finds trends and opportunities)",
             "writer": "📝 Script Writer (creates video scripts)", 
             "designer": "🎨 Thumbnail Creator (designs thumbnail concepts)",
             "analyst": "📊 Analytics Processor (optimization and planning)"
         }
         
-        selected_models = {}
+        # First, let user select which agents to use
+        self.console.print("[bold yellow]Select which agents you want to include in your workflow:[/bold yellow]\n")
         
-        for agent_key, agent_desc in agents.items():
+        for i, (agent_key, agent_desc) in enumerate(agents.items(), 1):
+            self.console.print(f"  {i}. {agent_desc}")
+        
+        selected_agents = {}
+        while not selected_agents:
+            choices_input = Prompt.ask(
+                "\nEnter agent numbers you want to use (e.g., 1,2,3)", 
+                default="1,2,3,4,5"
+            )
+            try:
+                choice_indices = [int(x.strip()) for x in choices_input.split(',')]
+                agent_keys = list(agents.keys())
+                selected_agents = {
+                    agent_keys[i-1]: True 
+                    for i in choice_indices 
+                    if 1 <= i <= len(agents)
+                }
+                if not selected_agents:
+                    self.console.print("[red]Please select at least one valid agent.[/red]")
+            except (ValueError, IndexError):
+                self.console.print("[red]Please enter valid numbers separated by commas.[/red]")
+        
+        # Then select models for selected agents
+        self.console.print("\n[bold blue]Now select AI models for your chosen agents:[/bold blue]\n")
+        
+        selected_models = {}
+        for agent_key in selected_agents.keys():
+            agent_desc = agents[agent_key]
             self.console.print(f"\n[bold cyan]Select model for {agent_desc}:[/bold cyan]")
             
             for i, (display_name, model_name) in enumerate(model_choices, 1):
@@ -140,18 +188,40 @@ Let's get started by configuring your automation workflow!
                 except ValueError:
                     self.console.print("[red]Please enter a valid number.[/red]")
         
-        return selected_models
+        return selected_agents, selected_models
     
-    def display_workflow_summary(self, config: Dict[str, any], models: Dict[str, str]):
+    def display_workflow_summary(self, config: Dict[str, any], selected_agents: Dict[str, bool], models: Dict[str, str]):
         """Display workflow configuration summary"""
         # Create model summary
         model_info = []
+        agent_names = {
+            "competitor_analyst": "Competitor Analyst",
+            "researcher": "Content Researcher", 
+            "writer": "Script Writer",
+            "designer": "Thumbnail Creator",
+            "analyst": "Analytics Processor"
+        }
+        
         for agent, model in models.items():
             available_models = get_available_models()
             model_obj = next((m for m in available_models if m.model_name == model), None)
             display_name = model_obj.display_name if model_obj else model
-            model_info.append(f"**{agent.title()}**: {display_name}")
+            agent_display = agent_names.get(agent, agent.title())
+            model_info.append(f"**{agent_display}**: {display_name}")
         
+        active_agents = [agent_names.get(k, k.title()) for k, v in selected_agents.items() if v]
+        
+        # Competitor URLs section
+        competitor_section = ""
+        if config.get('competitor_urls'):
+            competitor_list = '\n'.join([f"- {url}" for url in config['competitor_urls']])
+            competitor_section = f"""
+## 🎯 Competitor Analysis
+
+**Provided Competitors**: {len(config['competitor_urls'])} channels
+{competitor_list}
+"""
+
         summary_text = f"""
 ## 🎬 Workflow Configuration
 
@@ -160,12 +230,16 @@ Let's get started by configuring your automation workflow!
 **👥 Audience**: {config['target_audience']}
 **🎯 Goals**: {', '.join(config['content_goals'])}
 **🛠️ Tools**: {'Enabled' if config['tools_enabled'] else 'Disabled'}
+{competitor_section}
+## 🤖 Active Agents
+
+{', '.join(active_agents)}
 
 ## 🤖 AI Models
 
 {chr(10).join(model_info)}
 
-The workflow will run through multiple phases to create a comprehensive YouTube content strategy.
+The workflow will run through multiple phases using your selected agents to create a comprehensive YouTube content strategy.
         """
         
         self.console.print(Panel(
@@ -231,6 +305,7 @@ Your YouTube content automation is ready to implement!
     def offer_export_options(self) -> str:
         """Offer export options for the results"""
         export_choices = [
+            ("📊 View comprehensive report", "report"),
             ("📄 View detailed results in terminal", "view"),
             ("💾 Export to markdown file", "export"),
             ("📋 Copy to clipboard (summary)", "clipboard"),

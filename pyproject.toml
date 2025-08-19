@@ -5,8 +5,11 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "beautifulsoup4>=4.13.4",
     "ddgs>=9.5.2",
     "duckduckgo-search>=8.1.1",
+    "google-api-python-client>=2.179.0",
+    "instaloader>=4.14.2",
     "langchain-anthropic>=0.3.18",
     "langchain-community>=0.3.27",
     "langchain-core>=0.3.74",
@@ -17,12 +20,21 @@ dependencies = [
     "langchain-ollama>=0.3.6",
     "langchain-openai>=0.3.30",
     "langgraph>=0.6.5",
+    "matplotlib>=3.10.5",
+    "numpy>=2.3.2",
+    "pandas>=2.3.1",
+    "requests>=2.32.4",
     "rich>=14.1.0",
+    "scikit-learn>=1.7.1",
+    "seaborn>=0.13.2",
+    "tweepy>=4.16.0",
     "wikipedia>=1.4.0",
+    "yt-dlp>=2025.8.11",
 ]
 
 [dependency-groups]
 dev = [
+    "jupyterlab>=4.4.6",
     "pytest>=8.4.1",
     "ruff>=0.12.9",
 ]

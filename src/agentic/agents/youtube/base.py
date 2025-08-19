@@ -62,9 +62,13 @@ class BaseYouTubeAgent(ABC):
                 if expected_params:
                     clean_args = {k: v for k, v in tool_args.items() if k in expected_params}
                 else:
-                    # Fallback: only keep common parameter names if we can't introspect the tool
-                    common_params = {'query', 'input', 'text', 'question', 'search_query'}
+                    # Fallback: keep common parameter names and competitor-specific params
+                    common_params = {'query', 'input', 'text', 'question', 'search_query', 'competitor_urls', 'niche'}
                     clean_args = {k: v for k, v in tool_args.items() if k in common_params}
+                
+                # Always filter out problematic parameters that LLMs add
+                problematic_params = {'index', 'step', 'order', 'position', 'id', 'number'}
+                clean_args = {k: v for k, v in clean_args.items() if k not in problematic_params}
                 
                 # Special handling for single-parameter tools
                 if len(clean_args) == 1:

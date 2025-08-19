@@ -27,19 +27,19 @@ class YouTubeAutomationInterface:
                 self.ui.console.print("[yellow]👋 Automation cancelled.[/yellow]")
                 return
             
-            # Select models
-            models = self.ui.select_models()
+            # Select agents and models
+            selected_agents, models = self.ui.select_agents_and_models()
             if not models:
                 self.ui.display_error("No AI models selected. Please configure API keys and try again.")
                 return
             
             # Display summary and confirm
-            if not self.ui.display_workflow_summary(config, models):
+            if not self.ui.display_workflow_summary(config, selected_agents, models):
                 self.ui.console.print("[yellow]👋 Automation cancelled.[/yellow]")
                 return
             
             # Run the workflow
-            self.run_workflow(config, models)
+            self.run_workflow(config, selected_agents, models)
             
         except KeyboardInterrupt:
             self.ui.console.print("\n[yellow]👋 Automation interrupted by user.[/yellow]")
@@ -48,7 +48,7 @@ class YouTubeAutomationInterface:
             if self.ui.ask_continue_after_error():
                 self.run()
     
-    def run_workflow(self, config: Dict[str, Any], models: Dict[str, str]):
+    def run_workflow(self, config: Dict[str, Any], selected_agents: Dict[str, bool], models: Dict[str, str]):
         """Execute the YouTube automation workflow"""
         try:
             # Prepare workflow parameters
@@ -57,6 +57,8 @@ class YouTubeAutomationInterface:
                 "niche": config["niche"], 
                 "target_audience": config["target_audience"],
                 "content_goals": config["content_goals"],
+                "competitor_urls": config.get("competitor_urls", []),
+                "selected_agents": selected_agents,
                 "models": models,
                 "tools_enabled": config["tools_enabled"],
                 "max_steps": 8,
@@ -67,16 +69,24 @@ class YouTubeAutomationInterface:
             final_state = None
             step_count = 0
             
-            # Phase names for progress display
-            phase_names = [
-                "Content Research & Competitor Analysis",
-                "Market Analysis & Trend Identification", 
-                "Content Ideation & Script Creation",
-                "Thumbnail Design & Visual Concepts",
-                "SEO & Optimization Strategies",
-                "Content Calendar & Scheduling",
-                "Final Recommendations & Action Plan"
-            ]
+            # Phase names for progress display (dynamic based on selected agents)
+            phase_names = []
+            if selected_agents.get("competitor_analyst", False):
+                phase_names.append("Competitor Intelligence Analysis")
+            if selected_agents.get("researcher", False):
+                phase_names.append("Content Research & Trend Analysis")
+            if selected_agents.get("analyst", False):
+                phase_names.append("Market Analysis & Opportunities")
+            if selected_agents.get("writer", False):
+                phase_names.append("Content Ideation & Script Creation")
+            if selected_agents.get("designer", False):
+                phase_names.append("Thumbnail Design & Visual Concepts")
+            if selected_agents.get("researcher", False):
+                phase_names.append("SEO & Optimization Strategies")
+            if selected_agents.get("analyst", False):
+                phase_names.append("Content Calendar & Scheduling")
+            if any(selected_agents.values()):
+                phase_names.append("Final Recommendations & Action Plan")
             
             # Run the workflow with streaming updates
             for state_update in run_youtube_automation(**workflow_params):
@@ -124,14 +134,19 @@ class YouTubeAutomationInterface:
         # Offer export options
         export_choice = self.ui.offer_export_options()
         
-        if export_choice == "view":
+        if export_choice == "report":
+            from .tui.reporting import YouTubeReportGenerator
+            report_generator = YouTubeReportGenerator()
+            report_generator.generate_comprehensive_report(final_state, config)
+            
+        elif export_choice == "view":
             self.ui.display_detailed_results(final_state.get("messages", []))
             
         elif export_choice == "export":
-            markdown_content = self.ui.export_to_markdown(
-                final_state.get("messages", []), 
-                config
-            )
+            # Enhanced markdown export with reporting capabilities
+            from .tui.reporting import YouTubeReportGenerator
+            report_generator = YouTubeReportGenerator()
+            markdown_content = report_generator.create_markdown_export(final_state, config)
             self.ui.save_markdown_file(markdown_content)
             
         elif export_choice == "clipboard":
