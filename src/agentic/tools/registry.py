@@ -3,6 +3,7 @@ from langchain_core.tools import BaseTool
 
 from agentic.tools.search import search_web
 from agentic.tools.wikipedia import search_wikipedia
+from agentic.tools.youtube import YOUTUBE_TOOLS
 
 
 class ToolsRegistry:
@@ -16,6 +17,10 @@ class ToolsRegistry:
         """Register default tools"""
         self.register_tool("search_web", search_web)
         self.register_tool("search_wikipedia", search_wikipedia)
+        
+        # Register YouTube tools
+        for tool in YOUTUBE_TOOLS:
+            self.register_tool(tool.name, tool)
 
     def register_tool(self, name: str, tool: BaseTool):
         """Register a tool with the registry"""

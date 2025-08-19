@@ -20,9 +20,14 @@ def run_terminal_ui():
             # Get debate type
             debate_type_num = ui.get_debate_type()
             
-            if debate_type_num == 5:  # Exit
+            if debate_type_num == 6:  # Exit
                 ui.console.print("\n[bold green]👋 Thanks for using Agentic AI![/bold green]")
                 break
+            elif debate_type_num == 5:  # YouTube Automation
+                from agentic.youtube_automation import YouTubeAutomationInterface
+                youtube_automation = YouTubeAutomationInterface()
+                youtube_automation.run()
+                continue
             
             debate_types = {    
                 1: "Debate",
