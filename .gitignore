@@ -12,3 +12,6 @@ wheels/
 # Environment variables
 .env
 .envrc
+
+# Jupyter
+.ipynb_checkpoints/
