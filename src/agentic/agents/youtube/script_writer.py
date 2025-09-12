@@ -1,9 +1,5 @@
-from typing import Optional, TYPE_CHECKING
 from .base import BaseYouTubeAgent
 from agentic.tools import get_tools_for_agents
-
-if TYPE_CHECKING:
-    pass
 
 
 class ScriptWriterAgent(BaseYouTubeAgent):
