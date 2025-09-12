@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from .base import BaseYouTubeAgent
 from agentic.tools import get_tools_for_agents
 
@@ -67,29 +67,37 @@ Always provide specific, quantifiable insights rather than generic observations.
         
         tools_text = "\n".join(tool_descriptions)
         
+        tracing_status = "enabled" if hasattr(self, '_tracing_initialized') else "available"
+        
         return f"""{self.persona}
 
 **Available Intelligence Tools:**
 {tools_text}
 
 Use these tools strategically:
-1. **Best Option**: Use `ytdlp_competitor_analysis` for comprehensive data extraction (requires yt-dlp installation)
-2. **Template Option**: Use `offline_competitor_analysis` tool for structured research templates (no internet required)
-3. **Strategy Option**: Use `strategy_generator` tool for comprehensive content strategies and positioning  
+1. **Primary Option**: Use `crawl4ai_competitor_analysis` for comprehensive AI-powered competitor analysis
+2. **Fallback Option**: Use `offline_competitor_analysis` for structured research templates (no internet required)
+3. **Strategy Option**: Use `strategy_generator` for content strategies and positioning guidance
 4. **Discovery**: Use `search_web` to discover competitor channels if none provided
 5. **Integration**: Combine insights from multiple tools for comprehensive analysis
 
-**Tool Priority (Comprehensive Analysis):**
-- **First Choice**: `ytdlp_competitor_analysis` - Most comprehensive, extracts real YouTube data with views, tags, engagement
-- **Fallback**: `offline_competitor_analysis` - Structured templates for manual research when yt-dlp unavailable
-- **Strategy**: `strategy_generator` - Content strategy and positioning guidance
-- **Discovery**: `search_web` - Find competitor channels if none provided
-- **Avoid**: Web scraping tools due to LLM internet access limitations
+**Tool Priority (Streamlined):**
+- **🥇 Primary**: `crawl4ai_competitor_analysis` - Advanced AI-powered scraping with structured data extraction
+- **🥈 Fallback**: `offline_competitor_analysis` - Structured templates for manual research when online tools unavailable
+- **📋 Strategy**: `strategy_generator` - Content strategy and positioning guidance
+- **🔍 Discovery**: `search_web` - Find competitor channels if none provided
 
-**yt-dlp Benefits:**
-- Extracts real view counts, engagement metrics, and performance data
-- Provides actual video tags and optimization insights  
-- Analyzes posting patterns and content strategies
-- Generates data-driven competitive benchmarks
+**Crawl4AI Advantages:**
+- AI-powered content understanding and extraction
+- Works with YouTube channels, websites, blogs, and social media
+- Structured data output with strategic insights
+- Cross-platform competitor analysis
+- Real-time scraping with dynamic content support
+- Generates actionable competitive intelligence
+- Comprehensive analysis with strategic recommendations
+
+**🔍 Phoenix Tracing:**
+All your operations are being traced with Phoenix for performance monitoring and debugging. 
+Tracing status: {tracing_status} at http://localhost:6006
 
 Your research should be systematic and comprehensive - discover competitors, analyze their strategies, and extract actionable insights for strategic advantage."""

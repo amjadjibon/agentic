@@ -24,10 +24,19 @@ class StrategyGeneratorTool(BaseTool):
     def _run(self, **kwargs) -> str:
         """Generate comprehensive strategy recommendations"""
         try:
+            # Filter out problematic parameters that LLMs might add
+            from agentic.utils.tool_argument_filter import ToolArgumentFilter
+            filtered_kwargs = ToolArgumentFilter.filter_arguments(self, self.name, kwargs)
+            
             # Extract parameters safely
-            niche = kwargs.get('niche', 'general')
-            target_audience = kwargs.get('target_audience', 'general')
-            content_goals = kwargs.get('content_goals', 'growth')
+            niche = filtered_kwargs.get('niche', 'general')
+            target_audience = filtered_kwargs.get('target_audience', 'general')
+            content_goals = filtered_kwargs.get('content_goals', 'growth')
+            
+            # Check if any problematic parameters were filtered out
+            problematic_found = ToolArgumentFilter.get_problematic_params_in_args(kwargs)
+            if problematic_found:
+                print(f"[DEBUG] strategy_generator filtered out parameters: {', '.join(problematic_found)}")
             
             return self._generate_strategy(niche, target_audience, content_goals)
             

@@ -4,11 +4,9 @@ from langchain_core.tools import BaseTool
 from agentic.tools.search import search_web
 from agentic.tools.wikipedia import search_wikipedia
 from agentic.tools.youtube import YOUTUBE_TOOLS
-from agentic.tools.competitor_analytics import COMPETITOR_ANALYTICS_TOOLS
-from agentic.tools.simple_competitor import SIMPLE_COMPETITOR_TOOLS
 from agentic.tools.offline_competitor import OFFLINE_COMPETITOR_TOOLS
 from agentic.tools.strategy_generator import STRATEGY_GENERATOR_TOOLS
-from agentic.tools.ytdlp_competitor import YTDLP_COMPETITOR_TOOLS
+from agentic.tools.crawl4ai_competitor import CRAWL4AI_COMPETITOR_TOOLS
 
 
 class ToolsRegistry:
@@ -27,14 +25,6 @@ class ToolsRegistry:
         for tool in YOUTUBE_TOOLS:
             self.register_tool(tool.name, tool)
         
-        # Register competitor analytics tools
-        for tool in COMPETITOR_ANALYTICS_TOOLS:
-            self.register_tool(tool.name, tool)
-        
-        # Register simple competitor tools (fallback)
-        for tool in SIMPLE_COMPETITOR_TOOLS:
-            self.register_tool(tool.name, tool)
-        
         # Register offline competitor tools (no internet required)
         for tool in OFFLINE_COMPETITOR_TOOLS:
             self.register_tool(tool.name, tool)
@@ -43,8 +33,8 @@ class ToolsRegistry:
         for tool in STRATEGY_GENERATOR_TOOLS:
             self.register_tool(tool.name, tool)
         
-        # Register yt-dlp competitor tools
-        for tool in YTDLP_COMPETITOR_TOOLS:
+        # Register Crawl4AI competitor tools (primary competitor analysis)
+        for tool in CRAWL4AI_COMPETITOR_TOOLS:
             self.register_tool(tool.name, tool)
 
     def register_tool(self, name: str, tool: BaseTool):

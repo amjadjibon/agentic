@@ -211,7 +211,7 @@ def _competitor_analysis_phase(state: YouTubeAutomationState, agent, tools_enabl
         {chr(10).join([f"- {url}" for url in provided_competitors])}
 
         **Analysis Process:**
-        1. Use the competitor_analytics tool with these specific URLs: {provided_competitors}
+        1. Use the crawl4ai_competitor_analysis tool with these specific URLs: {provided_competitors}
         2. Analyze each channel's performance metrics, content themes, and success patterns
         3. Compare their strategies against your channel's goals and niche
         4. Identify content gaps and positioning opportunities
@@ -224,7 +224,7 @@ def _competitor_analysis_phase(state: YouTubeAutomationState, agent, tools_enabl
         - Content gap opportunities and differentiation strategies
         - Specific tactical recommendations for outperforming competitors
 
-        **IMPORTANT**: Use the competitor_analytics tool with the provided URLs to get detailed analysis data.
+        **IMPORTANT**: Use the crawl4ai_competitor_analysis tool with the provided URLs to get detailed analysis data.
         """
     else:
         competitor_prompt = f"""
